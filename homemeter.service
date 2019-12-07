@@ -1,0 +1,20 @@
+
+[Unit]                                                                                                                            
+Description=Home meter service
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/meter
+ExecStart=/home/pi/meter/meters.py
+Environment="PYTHONUNBUFFERED=true" "PYTHONPATH=./lib"
+KillMode=control-group
+NotifyAccess=all
+WatchdogSec=30s
+Restart=on-failure
+StartLimitInterval=5min
+StartLimitBurst=5
+StartLimitAction=reboot-force
+
+[Install]
+WantedBy=multi-user.target

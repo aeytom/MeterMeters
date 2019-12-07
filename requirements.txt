@@ -1,0 +1,5 @@
+influxdb
+qmc5883l==0.92
+RPi.GPIO
+smbus
+systemd==0.16.1

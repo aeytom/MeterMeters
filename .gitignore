@@ -1,0 +1,6 @@
+lib/
+solar.txt
+gas.txt
+current.txt
+counters.db
+__pycache__
