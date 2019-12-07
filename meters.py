@@ -130,7 +130,7 @@ class MagnetRunner(BaseMeter):
         if (meter > 0):
             self.setMeter(meter)
         BaseMeter.__init__(self, name="gas", meter=self.meter,
-                           influx_client=influx_client, logger=logger)
+                           influx_client=influx_client, logger=logger, measurement="gas")
         logger.info("%s init magnet runner %d <<< %d - meter=%.3f" %
                     (self.name, self.minVal, self.maxVal, self.meter))
 

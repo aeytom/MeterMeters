@@ -49,8 +49,8 @@ class BaseMeter:
         if ((datetime.now() - self.ts).total_seconds() > 240):
             if (self.currentDiff != 0.0):
                 self.logger.info("fix meter to %.3f diff=%.3f" % (self.meter, self.currentDiff))
-                self.setMeter(self.meter + self.currentDiff * 0.1)
-                self.currentDiff = self.currentDiff * 0.9
+                self.setMeter(self.meter + self.currentDiff * 0.05)
+                self.currentDiff = self.currentDiff * 0.95
                 if (abs(self.currentDiff) < 0.01):
                     self.currentDiff = 0.0
             self.writeInflux()
