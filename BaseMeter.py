@@ -14,15 +14,17 @@ class BaseMeter:
         self.name = name
         self.ts = datetime.now()
         self.influx_client = influx_client
-        self.meter = meter
         self.measurement = measurement
+        self.setMeter(meter)
 
     def setMeter(self, meter):
-        self.meter = meter
+        self.meter = float(meter)
 
-    def setCurrent(self, meter):
+    def setCurrent(self, raw):
+        meter = float(raw)
         if (meter > 0):
             self.currentDiff = meter - self.meter
+            self.logger.info('set corrected meter %.3f diff=%.3f' % (meter, self.currentDiff))
 
     def writeInflux(self):
         self.ts = datetime.now()
@@ -40,12 +42,13 @@ class BaseMeter:
                 }
             }
         ]
-        InfluxWriterThread(self.influx_client, json_body, self.logger)
+        writer = InfluxWriterThread(self.influx_client, json_body, self.logger)
+        writer.start() 
 
     def tick(self):
         if ((datetime.now() - self.ts).total_seconds() > 240):
             if (self.currentDiff != 0.0):
-                self.logger.info("fix meter to %.3f diff=%.3f" % (self.meter, self.c))
+                self.logger.info("fix meter to %.3f diff=%.3f" % (self.meter, self.currentDiff))
                 self.setMeter(self.meter + self.currentDiff * 0.1)
                 self.currentDiff = self.currentDiff * 0.9
                 if (abs(self.currentDiff) < 0.01):

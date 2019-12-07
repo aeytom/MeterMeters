@@ -5,7 +5,7 @@ import threading
 
 class InfluxWriterThread(threading.Thread):
 
-    lock = threading.Lock
+    lock = threading.Lock()
 
     def __init__(self, client, body, logger):
         threading.Thread.__init__(self)

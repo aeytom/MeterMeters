@@ -117,7 +117,6 @@ class MagnetRunner(BaseMeter):
     RANGE_CORRECTION_FACTOR = 0.05
     SAMPLING_DELAY = 0.5
 
-    meter = 0
     maxVal = -99999
     minVal = 99999
     ts = datetime.now()
@@ -130,7 +129,7 @@ class MagnetRunner(BaseMeter):
             self.setMeter(info[2])
         if (meter > 0):
             self.setMeter(meter)
-        BaseMeter.__init__(self, name="gas", meter=meter,
+        BaseMeter.__init__(self, name="gas", meter=self.meter,
                            influx_client=influx_client, logger=logger)
         logger.info("%s init magnet runner %d <<< %d - meter=%.3f" %
                     (self.name, self.minVal, self.maxVal, self.meter))
@@ -182,7 +181,8 @@ def tick_handler(signum, frame):
         try:
             with open('solar.txt') as f:
                 line = f.readline()
-                solarMeter.setCurrent(float(line))
+                solarMeter.setCurrent(line.strip())
+            os.remove('solar.txt')
         except FileNotFoundError:
             pass
         solarMeter.tick()
@@ -190,7 +190,8 @@ def tick_handler(signum, frame):
         try:
             with open('current.txt') as f:
                 line = f.readline()
-                currentMeter.setCurrent(float(line))
+                currentMeter.setCurrent(line.strip())
+            os.remove('current.txt')
         except FileNotFoundError:
             pass
         currentMeter.tick()
@@ -198,7 +199,8 @@ def tick_handler(signum, frame):
         try:
             with open('gas.txt') as f:
                 line = f.readline()
-                gasMeter.setCurrent(float(line))
+                gasMeter.setCurrent(line.strip())
+            os.remove('gas.txt')
         except FileNotFoundError:
             pass
         gasMeter.tick()
