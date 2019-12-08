@@ -64,13 +64,13 @@ class BaseMeter:
     def setCurrent(self, raw):
         meter = float(raw)
         if (meter > 0.0):
-            self.config.logger().info('set corrected meter %.3f diff=%.3f' %
+            self.logger().info('set corrected meter %.3f diff=%.3f' %
                              (meter, meter - self.meter))
             self.setMeter(meter)
 
     def writeInflux(self):
         self.ts = datetime.now()
-        self.config.logger().info("%s meter %s val=%f" %
+        self.logger().info("%s meter %s val=%f" %
                          (__name__, self.name, self.meter))
         json_body = [
             {
@@ -90,3 +90,6 @@ class BaseMeter:
     def tick(self):
         if ((datetime.now() - self.ts).total_seconds() > 240):
             self.writeInflux()
+
+    def logger(self):
+        return self.config.Logger()

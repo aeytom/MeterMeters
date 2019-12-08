@@ -16,20 +16,26 @@ class FerrarisMeter(BaseMeter):
             }
         else:
             parameters = {}
-        BaseMeter.__init__(self, config=config, name=name, meter=meter, parameters=parameters)
+        BaseMeter.__init__(self, config=config, name=name,
+                           meter=meter, parameters=parameters)
 
         self.tsMeasure = None
-        logger.info("%s init gpio %d rotations_per_kwh=%d meter=%.2f" %
-                    (self.name, self.parameters["gpio_channel"], self.parameters["rotations_per_kilo_watt_hour"], self.meter))
-        db.putCInfo(name, gpio, rpkwh)
+        self.logger().info("%s init gpio %d rotations_per_kwh=%d meter=%.2f" %
+                           (self.name, self.gpio(), self.rpkwh(), self.meter))
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(gpio, GPIO.IN)
-        GPIO.add_event_detect(gpio, GPIO.BOTH,
+        GPIO.setup(self.gpio(), GPIO.IN)
+        GPIO.add_event_detect(self.gpio(), GPIO.BOTH,
                               callback=self.measure, bouncetime=200)
+
+    def gpio(self):
+        return self.parameters["gpio_channel"]
+
+    def rpkwh(self):
+        return self.parameters["rotations_per_kilo_watt_hour"]
 
     def measure(self, gpio_channel):
         now = datetime.now()
-        if GPIO.input(self.parameters["gpio_channel"]):
+        if GPIO.input(self.gpio()):
             if self.tsMeasure == None:
                 self.tsMeasure = now
         elif self.tsMeasure != None:
@@ -37,7 +43,7 @@ class FerrarisMeter(BaseMeter):
             if delta.total_seconds() > 1:
                 self.tsMeasure = None
                 self.addMeter(
-                    1 / self.parameters["rotations_per_kilo_watt_hour"])
-                logger.info("%s gpio %2d - %.2f delta %f" % (self.name,
-                                                             self.parameters["gpio_channel"], self.meter, delta.total_seconds()))
+                    1 / self.rpkwh())
+                self.logger().info("%s gpio %2d - %.2f delta %f" % (self.name,
+                                                                    self.gpio(), self.meter, delta.total_seconds()))
                 self.writeInflux()

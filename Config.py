@@ -2,15 +2,15 @@ import logging
 import systemd
 
 class Config:
-    def __init__(self, loggerName):
-        logging.basicConfig(level=logging.DEBUG)
+    def __init__(self, loggerName="homemeter"):
+        logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(loggerName)
         self.logger.addHandler(systemd.journal.JournaldLogHandler())
 
-    def influx(self): 
+    def Influx(self): 
         return Influx()
 
-    def logger(self, name=None):
+    def Logger(self):
         return self.logger
 
 

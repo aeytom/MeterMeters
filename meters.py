@@ -16,7 +16,7 @@ from MagnetMeter import MagnetMeter
 
 
 def usage():
-    logger.error("%s --help --current=[] --solar=[] --gas=[]" % (sys.argv[0]))
+    config.Logger().error("%s --help --current=[] --solar=[] --gas=[]" % (sys.argv[0]))
 
 
 def tick_handler(signum, frame):
@@ -54,6 +54,7 @@ def tick_handler(signum, frame):
 
 ALARM_INTERVAL = int(int(os.getenv("WATCHDOG_USEC", "30000000")) / 3000000)
 
+config = Config()
 solarMeter = None
 currentMeter = None
 gasMeter = None
@@ -63,7 +64,7 @@ try:
         "help", "current=", "solar=", "gas="])
 except getopt.GetoptError as err:
     # print help information and exit:
-    logger.error(err)  # will print something like "option -a not recognized"
+    config.Logger().error(err)  # will print something like "option -a not recognized"
     usage()
     sys.exit(2)
 for o, a in opts:
@@ -73,22 +74,22 @@ for o, a in opts:
         usage()
         sys.exit()
     elif o in ("-g", "--gas"):
-        gasMeter = MagnetMeter(Config, float(a))
+        gasMeter = MagnetMeter(config, float(a))
     elif o in ("-c", "--current"):
-        currentMeter = FerrarisMeter(Config, name="current", gpio=27, rpkwh=75, meter=float(a))
+        currentMeter = FerrarisMeter(config, name="current", gpio=27, rpkwh=75, meter=float(a))
     elif o in ("-s", "--solar"):
-        solarMeter = FerrarisMeter(Config, name="solar", gpio=17, rpkwh=375, meter=float(a))
+        solarMeter = FerrarisMeter(config, name="solar", gpio=17, rpkwh=375, meter=float(a))
     else:
         assert False, "unhandled option"
 
 if (currentMeter == None and gasMeter == None and solarMeter == None):
-    currentMeter = FerrarisMeter(Config, "current")
-    solarMeter = FerrarisMeter(Config, "solar")
-    gasMeter = MagnetMeter(Config)
+    currentMeter = FerrarisMeter(config, "current")
+    solarMeter = FerrarisMeter(config, "solar")
+    gasMeter = MagnetMeter(config)
 
 notify(Notification.READY)
 notify(Notification.WATCHDOG)
-logger.info("Watchdog alarm every %.2f sec" % (ALARM_INTERVAL))
+config.Logger().info("Watchdog alarm every %.2f sec" % (ALARM_INTERVAL))
 signal.signal(signal.SIGALRM, tick_handler)
 signal.setitimer(signal.ITIMER_REAL, ALARM_INTERVAL)
 
@@ -101,7 +102,7 @@ try:
             tic = tic + 1
             sleep(5)
 except KeyboardInterrupt:
-    logger.info("bye bye")
+    config.Logger().info("bye bye")
 
 
 notify(Notification.STOPPING)

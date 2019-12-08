@@ -19,7 +19,7 @@ class WriterThread(threading.Thread):
     def __init__(self, config, body):
         threading.Thread.__init__(self)
         self.client = Client()
-        self.logger = config.logger()
+        self.logger = config.Logger()
         self.addPoint(body)
 
     def addPoint(self, body):
