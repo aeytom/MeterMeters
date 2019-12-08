@@ -8,16 +8,17 @@ import sqlite3
 class BaseMeter:
     """ base class of all meters """
 
-    def __init__(self, logger, influx_client, name, meter=0.0, measurement="meter", sqlite_dsn="counters.db", parameters={}):
-        self.logger = logger
+    def __init__(self, config, name, meter=0.0, measurement="meter", sqlite_dsn="counters.db", parameters={}):
+        self.config = config
         self.name = name
         self.ts = datetime.now()
-        self.influx_client = influx_client
         self.measurement = measurement
-        self.meter = meter
         self.parameters = parameters
         self._init_sqlite(sqlite_dsn)
-        self.setMeter(meter)
+        if (meter == 0):
+            self.getMeter()
+        else:
+            self.setMeter(meter)
 
     def _init_sqlite(self, dsn):
         self.sqlite_dsn = dsn
@@ -63,13 +64,13 @@ class BaseMeter:
     def setCurrent(self, raw):
         meter = float(raw)
         if (meter > 0.0):
-            self.logger.info('set corrected meter %.3f diff=%.3f' %
+            self.config.logger().info('set corrected meter %.3f diff=%.3f' %
                              (meter, meter - self.meter))
             self.setMeter(meter)
 
     def writeInflux(self):
         self.ts = datetime.now()
-        self.logger.info("%s meter %s val=%f" %
+        self.config.logger().info("%s meter %s val=%f" %
                          (__name__, self.name, self.meter))
         json_body = [
             {
@@ -83,7 +84,7 @@ class BaseMeter:
                 }
             }
         ]
-        writer = WriterThread(self.influx_client, json_body, self.logger)
+        writer = WriterThread(self.config, json_body)
         writer.start()
 
     def tick(self):
