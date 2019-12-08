@@ -4,3 +4,4 @@ gas.txt
 current.txt
 counters.db
 __pycache__
+.vscode

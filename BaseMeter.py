@@ -1,30 +1,71 @@
 
 from datetime import datetime, timedelta
-from InfluxWriterThread import InfluxWriterThread
+from InfluxWriterThread import WriterThread
+import json
+import sqlite3
 
 
 class BaseMeter:
     """ base class of all meters """
 
-    meter = 0.0
-    currentDiff = 0.0
-
-    def __init__(self, logger, influx_client, name, meter=0.0, measurement="meter"):
+    def __init__(self, logger, influx_client, name, meter=0.0, measurement="meter", sqlite_dsn="counters.db", parameters={}):
         self.logger = logger
         self.name = name
         self.ts = datetime.now()
         self.influx_client = influx_client
         self.measurement = measurement
+        self.meter = meter
+        self.parameters = parameters
+        self._init_sqlite(sqlite_dsn)
         self.setMeter(meter)
 
+    def _init_sqlite(self, dsn):
+        self.sqlite_dsn = dsn
+        self.sqlite_db = self.db = sqlite3.connect(dsn)
+        c = self.sqlite_db.cursor()
+        c.execute(
+            '''CREATE TABLE IF NOT EXISTS info (date text, name text PRIMARY KEY, meter real, parameters text)''')
+        self.sqlite_db.commit()
+
+    def addMeter(self, diff):
+        meter = self.getMeter() + diff
+        self.setMeter(meter)
+
+    def getMeter(self):
+        self.restoreState()
+        return self.meter
+
     def setMeter(self, meter):
-        self.meter = float(meter)
+        if (float(meter) > 0):
+            self.meter = float(meter)
+            self.saveState()
+
+    def saveState(self):
+        self.sqlite_db = self.db = sqlite3.connect(self.sqlite_dsn)
+        c = self.sqlite_db.cursor()
+        params = (self.name,)
+        c.execute('DELETE FROM info WHERE name=?', params)
+        params = (datetime.now().isoformat(), self.name,
+                  self.meter, json.dumps(self.parameters),)
+        c.execute('INSERT INTO info VALUES (?,?,?,?)', params)
+        self.sqlite_db.commit()
+
+    def restoreState(self):
+        self.sqlite_db = self.db = sqlite3.connect(self.sqlite_dsn)
+        c = self.sqlite_db.cursor()
+        params = (self.name,)
+        c.execute('SELECT meter, parameters from info WHERE name=?', params)
+        row = c.fetchone()
+        if (row != None):
+            self.meter = float(row[0])
+            self.parameters = json.loads(row[1])
 
     def setCurrent(self, raw):
         meter = float(raw)
-        if (meter > 0):
-            self.currentDiff = meter - self.meter
-            self.logger.info('set corrected meter %.3f diff=%.3f' % (meter, self.currentDiff))
+        if (meter > 0.0):
+            self.logger.info('set corrected meter %.3f diff=%.3f' %
+                             (meter, meter - self.meter))
+            self.setMeter(meter)
 
     def writeInflux(self):
         self.ts = datetime.now()
@@ -42,15 +83,9 @@ class BaseMeter:
                 }
             }
         ]
-        writer = InfluxWriterThread(self.influx_client, json_body, self.logger)
-        writer.start() 
+        writer = WriterThread(self.influx_client, json_body, self.logger)
+        writer.start()
 
     def tick(self):
         if ((datetime.now() - self.ts).total_seconds() > 240):
-            if (self.currentDiff != 0.0):
-                self.logger.info("fix meter to %.3f diff=%.3f" % (self.meter, self.currentDiff))
-                self.setMeter(self.meter + self.currentDiff * 0.05)
-                self.currentDiff = self.currentDiff * 0.95
-                if (abs(self.currentDiff) < 0.01):
-                    self.currentDiff = 0.0
             self.writeInflux()

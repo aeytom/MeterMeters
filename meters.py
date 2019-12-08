@@ -11,8 +11,8 @@ import logging
 import os
 import py_qmc5883l
 import signal
-import sqlite3
 import sys
+import sqlite3
 
 from BaseMeter import BaseMeter
 
@@ -20,19 +20,16 @@ from BaseMeter import BaseMeter
 class FerrarisMeter(BaseMeter):
     """ hold data for Ferraris meter counting"""
 
-    gpio_channel = 0
-    rotations_per_kilo_watt_hour = 375
-
     def __init__(self, name, gpio_channel, rpkwh, meter):
         BaseMeter.__init__(self, name=name, meter=meter,
-                           influx_client=influx_client, logger=logger)
+                           influx_client=influx_client, logger=logger, parameters={
+                               "gpio_channel": gpio_channel,
+                               "rotations_per_kilo_watt_hour": rpkwh})
 
         self.tsMeasure = None
-        self.gpio_channel = gpio_channel
-        self.rotations_per_kilo_watt_hour = rpkwh
-        db.write(self.name, self.meter)
+        self.saveState()
         logger.info("%s init gpio %d rotations_per_kwh=%d meter=%.2f" %
-                    (self.name, self.gpio_channel, self.rotations_per_kilo_watt_hour, self.meter))
+                    (self.name, self.parameters["gpio_channel"], self.parameters["rotations_per_kilo_watt_hour"], self.meter))
         db.putCInfo(name, gpio_channel, rpkwh)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(gpio_channel, GPIO.IN)
@@ -41,18 +38,17 @@ class FerrarisMeter(BaseMeter):
 
     def measure(self, gpio_channel):
         now = datetime.now()
-        if GPIO.input(self.gpio_channel):
+        if GPIO.input(self.parameters["gpio_channel"]):
             if self.tsMeasure == None:
                 self.tsMeasure = now
         elif self.tsMeasure != None:
             delta = now - self.tsMeasure
             if delta.total_seconds() > 1:
                 self.tsMeasure = None
-                self.meter = self.meter + 1 / self.rotations_per_kilo_watt_hour
+                self.addMeter(
+                    1 / self.parameters["rotations_per_kilo_watt_hour"])
                 logger.info("%s gpio %2d - %.2f delta %f" % (self.name,
-                                                             self.gpio_channel, self.meter, delta.total_seconds()))
-                db = PersistentMeter(db_name)
-                db.write(self.name, self.meter)
+                                                             self.parameters["gpio_channel"], self.meter, delta.total_seconds()))
                 self.writeInflux()
 
 
@@ -122,17 +118,15 @@ class MagnetRunner(BaseMeter):
     ts = datetime.now()
 
     def __init__(self, meter):
+        parameters = {}
         info = db.getGasInfo("gas")
         if (info != None):
-            self.minVal = info[3]
-            self.maxVal = info[4]
-            self.setMeter(info[2])
-        if (meter > 0):
-            self.setMeter(meter)
-        BaseMeter.__init__(self, name="gas", meter=self.meter,
-                           influx_client=influx_client, logger=logger, measurement="gas")
+            parameters = {"minVal": info[3], "maxVal": info[4]}
+            meter = info[2]
+        BaseMeter.__init__(self, name="gas", meter=meter,
+                           influx_client=influx_client, logger=logger, measurement="gas", parameters=parameters)
         logger.info("%s init magnet runner %d <<< %d - meter=%.3f" %
-                    (self.name, self.minVal, self.maxVal, self.meter))
+                    (self.name, self.parameters["minVal"], self.parameters["maxVal"], self.meter))
 
     def run(self):
         sensor = py_qmc5883l.QMC5883L(output_range=py_qmc5883l.RNG_8G)
@@ -141,32 +135,31 @@ class MagnetRunner(BaseMeter):
             sleep(MagnetRunner.SAMPLING_DELAY)
             m = sensor.get_magnet_raw()
             val = m[0]
-            if (self.minVal > val):
-                self.minVal = val
+            if (self.parameters["minVal"] > val):
+                self.parameters["minVal"] = val
                 continue
-            if (self.maxVal < val):
-                self.maxVal = val
+            if (self.parameters["maxVal"] < val):
+                self.parameters["maxVal"] = val
                 continue
-            range = self.maxVal - self.minVal
+            range = self.parameters["maxVal"] - self.parameters["minVal"]
             if (range < 10000):
                 continue
             # logger.info("gas %6d . %6d . %6d --- %.3f %d" %
-            #       (self.minVal, val, self.maxVal, self.meter, expect))
+            #       (self.parameters["minVal"], val, self.parameters["maxVal"], self.meter, expect))
             if (expect == -1):
-                if (val < (self.minVal + MagnetRunner.RANGE_HYSTERESIS * range)):
+                if (val < (self.parameters["minVal"] + MagnetRunner.RANGE_HYSTERESIS * range)):
                     expect = 1
-                    self.minVal = self.minVal + MagnetRunner.RANGE_CORRECTION_FACTOR * range
+                    self.parameters["minVal"] = self.parameters["minVal"] + \
+                        MagnetRunner.RANGE_CORRECTION_FACTOR * range
                     continue
             if (expect == 1):
-                if (val > (self.maxVal - MagnetRunner.RANGE_HYSTERESIS * range)):
+                if (val > (self.parameters["maxVal"] - MagnetRunner.RANGE_HYSTERESIS * range)):
                     expect = -1
-                    self.maxVal = self.maxVal - MagnetRunner.RANGE_CORRECTION_FACTOR * range
+                    self.parameters["maxVal"] = self.parameters["maxVal"] - \
+                        MagnetRunner.RANGE_CORRECTION_FACTOR * range
+                    self.addMeter(0.001)
                     self.writeInflux()
                     continue
-
-    def setMeter(self, meter):
-        super().setMeter(meter)
-        db.putGasInfo("gas", self.meter, self.minVal, self.maxVal)
 
 
 def usage():
@@ -206,13 +199,12 @@ def tick_handler(signum, frame):
         gasMeter.tick()
 
 
+db_name = "counters.db"
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(sys.argv[0])
 logger.addHandler(journal.JournaldLogHandler())
 
 ALARM_INTERVAL = int(int(os.getenv("WATCHDOG_USEC", "30000000")) / 3000000)
-
-db_name = 'counters.db'
 
 influx_host = 'leothinksuse.fritz.box'
 influx_port = 8086
