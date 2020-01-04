@@ -7,7 +7,7 @@ After=network.target
 User=pi
 WorkingDirectory=/home/pi/meter
 ExecStart=/home/pi/meter/meters.py
-Environment="PYTHONUNBUFFERED=true" "PYTHONPATH=./lib"
+EnvironmentFile=/etc/default/meter
 KillMode=control-group
 NotifyAccess=all
 WatchdogSec=30s

@@ -32,6 +32,7 @@ def tick_handler(signum, frame):
         except FileNotFoundError:
             pass
         solarMeter.tick()
+
     if (currentMeter != None):
         try:
             with open('current.txt') as f:
@@ -41,6 +42,7 @@ def tick_handler(signum, frame):
         except FileNotFoundError:
             pass
         currentMeter.tick()
+        
     if (gasMeter != None):
         try:
             with open('gas.txt') as f:

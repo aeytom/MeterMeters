@@ -49,6 +49,6 @@ class MagnetMeter(BaseMeter):
                     expect = -1
                     self.parameters["maxVal"] = self.parameters["maxVal"] - \
                         MagnetMeter.RANGE_CORRECTION_FACTOR * range
-                    self.addMeter(0.001)
+                    self.addTick(0.001)
                     self.writeInflux()
                     continue

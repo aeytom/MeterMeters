@@ -1,5 +1,7 @@
 import logging
+import os
 import systemd
+
 
 class Config:
     def __init__(self, loggerName="homemeter"):
@@ -8,7 +10,7 @@ class Config:
         self.logger = logging.getLogger(loggerName)
         self.logger.setLevel(logging.INFO)
 
-    def Influx(self): 
+    def Influx(self):
         return Influx()
 
     def Logger(self):
@@ -16,8 +18,8 @@ class Config:
 
 
 class Influx:
-    host = 'leothinksuse.fritz.box'
-    port = 8086
-    db = 'homemeter'
-    user = 'homemeter'
-    password = 'istgeheim'
+    host = os.environ.get('INFLUX_HOST', 'influx.db')
+    port = os.environ.get('INFLUX_PORT', 8086)
+    db = os.environ.get('INFLUX_DB', 'homemeter')
+    user = os.environ.get('INFLUX_USER')
+    password = os.environ.get('INFLUX_PASSWORD')

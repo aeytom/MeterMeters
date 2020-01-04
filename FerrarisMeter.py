@@ -42,8 +42,7 @@ class FerrarisMeter(BaseMeter):
             delta = now - self.tsMeasure
             if delta.total_seconds() > 1:
                 self.tsMeasure = None
-                self.addMeter(
-                    1 / self.rpkwh())
+                self.addTick(1 / self.rpkwh())
                 self.logger().info("%s gpio %2d - %.2f delta %f" % (self.name,
                                                                     self.gpio(), self.meter, delta.total_seconds()))
                 self.writeInflux()
