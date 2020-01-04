@@ -110,8 +110,8 @@ class BaseMeter:
         write current meter state to influxdb
         """
         self.ts = datetime.now()
-        self.logger().info("%s meter %s val=%f" %
-                           (__name__, self.name, self.meter))
+        self.logger().info("%s meter %s val=%f (%f + %d * diff)" %
+                           (__name__, self.name, self.meter, self.startMeter, self.ticks))
         json_body = [
             {
                 "measurement": self.measurement,

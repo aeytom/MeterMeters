@@ -15,6 +15,7 @@ Restart=on-failure
 StartLimitInterval=5min
 StartLimitBurst=5
 StartLimitAction=reboot-force
+StandardOutput=null
 
 [Install]
 WantedBy=multi-user.target
