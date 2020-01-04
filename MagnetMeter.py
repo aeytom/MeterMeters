@@ -6,7 +6,7 @@ import py_qmc5883l
 class MagnetMeter(BaseMeter):
     RANGE_HYSTERESIS = 0.2
     RANGE_CORRECTION_FACTOR = 0.05
-    SAMPLING_DELAY = 0.5
+    SAMPLING_DELAY = 0.2
 
     def __init__(self, config, meter=0.0):
         if (meter == 0.0):

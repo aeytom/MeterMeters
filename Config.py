@@ -3,9 +3,10 @@ import systemd
 
 class Config:
     def __init__(self, loggerName="homemeter"):
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.CRITICAL)
+        logging.getLogger().addHandler(systemd.journal.JournaldLogHandler())
         self.logger = logging.getLogger(loggerName)
-        self.logger.addHandler(systemd.journal.JournaldLogHandler())
+        self.logger.setLevel(logging.INFO)
 
     def Influx(self): 
         return Influx()

@@ -25,7 +25,7 @@ class FerrarisMeter(BaseMeter):
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.gpio(), GPIO.IN)
         GPIO.add_event_detect(self.gpio(), GPIO.BOTH,
-                              callback=self.measure, bouncetime=200)
+                              callback=self.measure, bouncetime=100)
 
     def gpio(self):
         return self.parameters["gpio_channel"]
