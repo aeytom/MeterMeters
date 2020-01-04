@@ -10,6 +10,7 @@ class BaseMeter:
     base class of all meters 
     """
 
+
     def __init__(self, config, name, meter=0.0, measurement="meter", sqlite_dsn="counters.db", parameters={}):
         self.config = config
         self.name = name
@@ -22,6 +23,9 @@ class BaseMeter:
             self.setMeter(meter)
         self.ticks = 0
         self.startMeter = self.getMeter()
+        #
+        self.time_wi_min = 99
+        self.time_wi_max = 0
 
     def _init_sqlite(self, dsn):
         """
@@ -126,6 +130,10 @@ class BaseMeter:
         ]
         writer = WriterThread(self.config, json_body)
         writer.start()
+        time_wi = (datetime.now() - self.ts).total_seconds()
+        self.time_wi_max = max(self.time_wi_max, time_wi)
+        self.time_wi_min = min(self.time_wi_min, time_wi)
+        self.logger().info("writeInflux() %s %fs <= %fs <= %fs" % (self.name, self.time_wi_min, time_wi, self.time_wi_max))
 
     def tick(self):
         """
