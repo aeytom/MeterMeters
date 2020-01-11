@@ -1,48 +1,54 @@
 
-from influxdb import InfluxDBClient
+import logging
 import threading
-
+import influxdb
 import Config
 
-class Client:
-    def __init__(self):
-        self.client = InfluxDBClient(host=Config.Influx.host, port=Config.Influx.port,
-                                database=Config.Influx.db, username=Config.Influx.user, password=Config.Influx.password)
-        self.client.create_database(Config.Influx.db)
+from InfluxClient import InfluxClient
 
 class WriterThread(threading.Thread):
+    """
+    """
 
     lock = threading.Lock()
-    lockQueue = threading.Lock()
+    queueLock = threading.Lock()
     queue = []
 
     def __init__(self, config, body):
         threading.Thread.__init__(self)
-        self.client = Client()
-        self.logger = config.Logger()
-        self.addPoint(body)
-
-    def addPoint(self, body):
-        self.lockQueue.acquire()
-        self.queue.extend(body)
-        self.lockQueue.release();
+        iconfig = config.Influx()
+        self.client = InfluxClient(iconfig)
+        self.logger = config.Logger().getChild("dbg")
+        self.logger.setLevel(logging.DEBUG)
+        self.points = body
 
     def run(self):
+        """
+        push datapoints to influx db
+
+        - add point to syncronized queue
+        - copy queue content to local variable
+        - write points to influxdb
+        - restore queue on error
+        """
         # get current queue
-        self.lockQueue.acquire()
-        queue = self.queue.copy()
-        self.queue.clear()
-        self.lockQueue.release()
+        WriterThread.queueLock.acquire()
+        WriterThread.queue.extend(self.points)
+        queue = WriterThread.queue.copy()
+        WriterThread.queue.clear()
+        WriterThread.queueLock.release()
+
+        self.logger.debug("write influxdb count=%d" % (len(queue)))
 
         # post queue items to db
-        WriterThread.lock.acquire()
         try:
-            self.client.client.write_points(queue)
+            WriterThread.lock.acquire()
+            self.client.write_points(queue)
+            WriterThread.lock.release()
         except influxdb.exceptions.InfluxDBClientError as ex:
+            WriterThread.lock.release()
             self.logger.exception(ex)
             # restore queue
-            self.lockQueue.acquire()
-            queue.extend(self.queue)
-            self.queue = queue
-            self.lockQueue.release()
-        WriterThread.lock.release()
+            WriterThread.queueLock.acquire()
+            WriterThread.queue.extend(queue)
+            WriterThread.queueLock.release()

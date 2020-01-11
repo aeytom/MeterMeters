@@ -10,7 +10,6 @@ class BaseMeter:
     base class of all meters 
     """
 
-
     def __init__(self, config, name, meter=0.0, measurement="meter", sqlite_dsn="counters.db", parameters={}):
         self.config = config
         self.name = name
@@ -21,7 +20,7 @@ class BaseMeter:
         self.restoreState()
         if (meter > 0):
             self.setMeter(meter)
-        self.ticks = 0
+        self.ticks = 1
         self.startMeter = self.getMeter()
         #
         self.time_wi_min = 99
@@ -103,8 +102,8 @@ class BaseMeter:
         """
         meter = float(raw)
         if (meter > 0.0):
-            self.logger().info('set corrected meter %.3f diff=%.3f' %
-                               (meter, meter - self.meter))
+            self.logger().info('%-10s set corrected meter %.3f diff=%.3f' %
+                               (self.name, meter, meter - self.meter))
             self.setMeter(meter)
             self.startMeter = meter
             self.ticks = 0
@@ -114,8 +113,8 @@ class BaseMeter:
         write current meter state to influxdb
         """
         self.ts = datetime.now()
-        self.logger().info("%s meter %s val=%f (%f + %d * diff)" %
-                           (__name__, self.name, self.meter, self.startMeter, self.ticks))
+        self.logger().info("%-10s val=%f (%f + %d * diff)" %
+                           (self.name, self.meter, self.startMeter, self.ticks))
         json_body = [
             {
                 "measurement": self.measurement,
@@ -133,7 +132,8 @@ class BaseMeter:
         time_wi = (datetime.now() - self.ts).total_seconds()
         self.time_wi_max = max(self.time_wi_max, time_wi)
         self.time_wi_min = min(self.time_wi_min, time_wi)
-        self.logger().info("writeInflux() %s %fs <= %fs <= %fs" % (self.name, self.time_wi_min, time_wi, self.time_wi_max))
+        self.logger().info("%-10s writeInflux() %.3fs <= %.3fs <= %.3fs" %
+                           (self.name, self.time_wi_min, time_wi, self.time_wi_max))
 
     def tick(self):
         """
