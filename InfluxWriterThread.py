@@ -2,8 +2,8 @@
 import logging
 import threading
 import influxdb
-import Config
 
+from Config import Config
 from InfluxClient import InfluxClient
 
 class WriterThread(threading.Thread):
@@ -18,8 +18,7 @@ class WriterThread(threading.Thread):
         threading.Thread.__init__(self)
         iconfig = config.Influx()
         self.client = InfluxClient(iconfig)
-        self.logger = config.Logger().getChild("dbg")
-        self.logger.setLevel(logging.DEBUG)
+        self.logger = config.Logger()
         self.points = body
 
     def run(self):
@@ -38,7 +37,8 @@ class WriterThread(threading.Thread):
         WriterThread.queue.clear()
         WriterThread.queueLock.release()
 
-        self.logger.debug("write influxdb count=%d" % (len(queue)))
+        if Config.debugLevel > 0:
+            self.logger.debug("write influxdb count=%d" % (len(queue)))
 
         # post queue items to db
         try:

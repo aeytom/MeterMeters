@@ -4,6 +4,8 @@ from InfluxWriterThread import WriterThread
 import json
 import sqlite3
 
+from Config import Config
+
 
 class BaseMeter:
     """ 
@@ -113,7 +115,7 @@ class BaseMeter:
         write current meter state to influxdb
         """
         self.ts = datetime.now()
-        self.logger().info("%-10s val=%f (%f + %d * diff)" %
+        self.logger().info("%-10s val=%.3f (%.3f + %d * diff)" %
                            (self.name, self.meter, self.startMeter, self.ticks))
         json_body = [
             {
@@ -129,11 +131,12 @@ class BaseMeter:
         ]
         writer = WriterThread(self.config, json_body)
         writer.start()
-        time_wi = (datetime.now() - self.ts).total_seconds()
-        self.time_wi_max = max(self.time_wi_max, time_wi)
-        self.time_wi_min = min(self.time_wi_min, time_wi)
-        self.logger().info("%-10s writeInflux() %.3fs <= %.3fs <= %.3fs" %
-                           (self.name, self.time_wi_min, time_wi, self.time_wi_max))
+        if Config.debugLevel > 3:
+            time_wi = (datetime.now() - self.ts).total_seconds()
+            self.time_wi_max = max(self.time_wi_max, time_wi)
+            self.time_wi_min = min(self.time_wi_min, time_wi)
+            self.logger().info("%-10s writeInflux() %.3fs <= %.3fs <= %.3fs" %
+                            (self.name, self.time_wi_min, time_wi, self.time_wi_max))
 
     def tick(self):
         """

@@ -25,7 +25,7 @@ class FerrarisMeter(BaseMeter):
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.gpio(), GPIO.IN)
         GPIO.add_event_detect(self.gpio(), GPIO.BOTH,
-                              callback=self.measure, bouncetime=100)
+                              callback=self.measure, bouncetime=250)
 
     def gpio(self):
         return self.parameters["gpio_channel"]
@@ -40,9 +40,9 @@ class FerrarisMeter(BaseMeter):
                 self.tsMeasure = now
         elif self.tsMeasure != None:
             delta = now - self.tsMeasure
-            if delta.total_seconds() > 1:
-                self.tsMeasure = None
-                self.addTick(1 / self.rpkwh())
-                self.logger().info("%s gpio %2d - %.2f delta %f" % (self.name,
-                                                                    self.gpio(), self.meter, delta.total_seconds()))
-                self.writeInflux()
+            self.tsMeasure = None
+            self.addTick(1 / self.rpkwh())
+            if Config.debugLevel > 0:
+                self.logger().debug("%s gpio %2d - %.2f delta %.1f" % (self.name,
+                                                                      self.gpio(), self.meter, delta.total_seconds()))
+            self.writeInflux()

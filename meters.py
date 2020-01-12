@@ -16,7 +16,7 @@ from MagnetMeter import MagnetMeter
 
 
 def usage():
-    config.Logger().error("%s --help --current=[] --solar=[] --gas=[]" % (sys.argv[0]))
+    config.Logger().error("%s --help --verbose --current=[] --solar=[] --gas=[]" % (sys.argv[0]))
 
 
 def tick_handler(signum, frame):
@@ -81,6 +81,8 @@ for o, a in opts:
         currentMeter = FerrarisMeter(config, name="current", gpio=27, rpkwh=75, meter=float(a))
     elif o in ("-s", "--solar"):
         solarMeter = FerrarisMeter(config, name="solar", gpio=17, rpkwh=375, meter=float(a))
+    elif o in ("-v", "--verbose"):
+        Config.debugLevel = Config.debugLevel + 1
     else:
         assert False, "unhandled option"
 

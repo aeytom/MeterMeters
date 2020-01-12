@@ -3,6 +3,7 @@ from Config import Config
 from time import sleep
 import py_qmc5883l
 
+
 class MagnetMeter(BaseMeter):
     RANGE_HYSTERESIS = 0.2
     RANGE_CORRECTION_FACTOR = 0.05
@@ -16,9 +17,10 @@ class MagnetMeter(BaseMeter):
             }
         else:
             parameters = {}
-        BaseMeter.__init__(self, config=config, name="gas", measurement="gas", meter=meter, parameters=parameters)
+        BaseMeter.__init__(self, config=config, name="gas",
+                           measurement="gas", meter=meter, parameters=parameters)
         self.logger().info("%s init magnet runner %d <<< %d - meter=%.3f" %
-                    (self.name, self.parameters["minVal"], self.parameters["maxVal"], self.meter))
+                           (self.name, self.parameters["minVal"], self.parameters["maxVal"], self.meter))
 
     def run(self):
         sensor = py_qmc5883l.QMC5883L(output_range=py_qmc5883l.RNG_8G)
@@ -36,8 +38,9 @@ class MagnetMeter(BaseMeter):
             range = self.parameters["maxVal"] - self.parameters["minVal"]
             if (range < 10000):
                 continue
-            self.logger().debug("gas %6d . %6d . %6d --- %.3f %d" %
-                  (self.parameters["minVal"], val, self.parameters["maxVal"], self.meter, expect))
+            if Config.debugLevel > 5:
+                self.logger().debug("gas %6d . %6d . %6d --- %.3f %d" %
+                                    (self.parameters["minVal"], val, self.parameters["maxVal"], self.meter, expect))
             if (expect == -1):
                 if (val < (self.parameters["minVal"] + MagnetMeter.RANGE_HYSTERESIS * range)):
                     expect = 1
