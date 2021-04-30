@@ -18,5 +18,5 @@ RPi.GPIO==0.7.0
 six==1.13.0
 smbus==1.1.post2
 systemd==0.16.1
-urllib3==1.25.7
+urllib3==1.25.8
 wrapt==1.11.2
